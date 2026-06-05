@@ -1,5 +1,5 @@
 {
-    "name": "aktolu/pdb",
+    "name": "aktolu/php-db-backup",
     "description": "A lightweight and portable PHP database backup and restore system with native Composer support.",
     "type": "library",
     "license": "MIT",
