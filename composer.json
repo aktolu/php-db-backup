@@ -1,0 +1,14 @@
+{
+    "name": "aktolu/pdb",
+    "description": "A lightweight and portable PHP database backup and restore system with native Composer support.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "aktolu\\": "src/"
+        }
+    }
+}
