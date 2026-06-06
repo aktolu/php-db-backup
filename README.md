@@ -135,6 +135,7 @@ All setters return the `PDB` instance (`$this`) to support method chaining.
 | `getOptions()` | `setOptions(array $options)` | `array` | Sets database/driver configuration options. |
 | `getTablePrefix()` | `setTablePrefix(string $prefix)` | `string` | Sets the table prefix to prepend dynamically when writing the backup. |
 | `getPrefixReplace()` | `setPrefixReplace(string $old, string $new)` | `array` | Sets table prefix replacement keys to map dynamically when writing the backup. |
+| `getOnlyTablesWithPrefix()` | `onlyTablesWithPrefix(string $prefix)` | `string` | Sets a prefix filter; only tables and views matching this prefix are backed up. |
 
 ### Backup Options
 You can configure the behavior of the backup using the 2nd argument of `$pdb->backup()`:
@@ -150,6 +151,7 @@ You can configure the behavior of the backup using the 2nd argument of `$pdb->ba
 | `add_drop_table` | `bool` | `true` | Include `DROP TABLE IF EXISTS` statement before table creation in the backup. |
 | `prefix` | `string` | `''` | Dynamically prepends a table prefix (e.g. `wp_`) when writing the backup stream. |
 | `prefix_replace` | `array` | `null` | Mapped array `['old_', 'new_']` to replace table prefixes dynamically when writing the backup. |
+| `only_tables_with_prefix` | `string` | `null` | Filters backup; only exports tables and views starting with the specified prefix (e.g., `wp_`). |
 
 ### Restore Options
 You can configure the behavior of the restore using the 2nd argument of `$pdb->restore()`:
@@ -203,6 +205,15 @@ For very large databases, you can replace table prefixes dynamically **as the SQ
 // They will be written as 'new_users', 'new_posts' directly inside the backup file
 $pdb->setPrefixReplace('old_', 'new_');
 $pdb->backup('backups/backup.sql.gz');
+```
+
+### 3. Backup Only Tables Starting with Prefix
+You can configure PDB to only backup tables and views starting with a specific prefix.
+
+```php
+// Backup only tables starting with 'wp_'
+$pdb->onlyTablesWithPrefix('wp_');
+$pdb->backup('backups/wp_backup.sql');
 ```
 
 ## License

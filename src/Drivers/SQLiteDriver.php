@@ -112,11 +112,24 @@ class SQLiteDriver implements DriverInterface
 
             // Export Views
             if ($includeStructure) {
-                $stmtViews = $this->pdo->query("SELECT sql FROM sqlite_schema WHERE type='view'");
-                $views = $stmtViews->fetchAll(PDO::FETCH_COLUMN);
-                if (!empty($views)) {
+                $stmtViews = $this->pdo->query("SELECT name, sql FROM sqlite_schema WHERE type='view'");
+                $views = $stmtViews->fetchAll();
+                $excludeTables = $options['exclude_tables'] ?? [];
+                $onlyPrefix = $options['only_tables_with_prefix'] ?? null;
+                $filteredViews = [];
+                foreach ($views as $view) {
+                    $viewName = $view['name'];
+                    if (in_array($viewName, $excludeTables)) {
+                        continue;
+                    }
+                    if ($onlyPrefix !== null && $onlyPrefix !== '' && !str_starts_with($viewName, $onlyPrefix)) {
+                        continue;
+                    }
+                    $filteredViews[] = $view['sql'];
+                }
+                if (!empty($filteredViews)) {
                     $this->write($handle, "\n--\n-- Views\n--\n\n", $compress);
-                    foreach ($views as $viewSql) {
+                    foreach ($filteredViews as $viewSql) {
                         $this->write($handle, $viewSql . ";\n\n", $compress);
                     }
                 }
@@ -326,6 +339,13 @@ class SQLiteDriver implements DriverInterface
         $excludeTables = $options['exclude_tables'] ?? [];
         if (!empty($excludeTables)) {
             $allTables = array_diff($allTables, $excludeTables);
+        }
+
+        $onlyPrefix = $options['only_tables_with_prefix'] ?? null;
+        if ($onlyPrefix !== null && $onlyPrefix !== '') {
+            $allTables = array_filter($allTables, function ($table) use ($onlyPrefix) {
+                return str_starts_with($table, $onlyPrefix);
+            });
         }
 
         return array_values($allTables);

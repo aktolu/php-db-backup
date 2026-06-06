@@ -21,6 +21,7 @@ class PDB
     private array $options = [];
     private ?string $tablePrefix = null;
     private ?array $prefixReplace = null;
+    private ?string $onlyTablesWithPrefix = null;
 
     /**
      * PDB Constructor
@@ -129,6 +130,12 @@ class PDB
         return $this;
     }
 
+    public function onlyTablesWithPrefix(string $prefix): self
+    {
+        $this->onlyTablesWithPrefix = $prefix;
+        return $this;
+    }
+
     // Getters
 
     public function getDriver(): ?string
@@ -174,6 +181,11 @@ class PDB
     public function getPrefixReplace(): ?array
     {
         return $this->prefixReplace;
+    }
+
+    public function getOnlyTablesWithPrefix(): ?string
+    {
+        return $this->onlyTablesWithPrefix;
     }
 
     /**
@@ -251,6 +263,9 @@ class PDB
         }
         if ($this->prefixReplace !== null && !isset($options['prefix_replace'])) {
             $options['prefix_replace'] = $this->prefixReplace;
+        }
+        if ($this->onlyTablesWithPrefix !== null && !isset($options['only_tables_with_prefix'])) {
+            $options['only_tables_with_prefix'] = $this->onlyTablesWithPrefix;
         }
         return $this->getDriverInstance()->backup($destinationFilePath, $options);
     }

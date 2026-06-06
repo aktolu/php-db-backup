@@ -178,6 +178,12 @@ class PgSQLDriver implements DriverInterface
             if (!empty($excludeTables)) {
                 $allViews = array_diff($allViews, $excludeTables);
             }
+            $onlyPrefix = $options['only_tables_with_prefix'] ?? null;
+            if ($onlyPrefix !== null && $onlyPrefix !== '') {
+                $allViews = array_filter($allViews, function ($view) use ($onlyPrefix) {
+                    return str_starts_with($view, $onlyPrefix);
+                });
+            }
             if ($includeStructure && !empty($allViews)) {
                 $this->write($handle, "\n--\n-- Views\n--\n\n", $compress);
                 foreach ($allViews as $view) {
@@ -503,6 +509,13 @@ class PgSQLDriver implements DriverInterface
         $excludeTables = $options['exclude_tables'] ?? [];
         if (!empty($excludeTables)) {
             $allTables = array_diff($allTables, $excludeTables);
+        }
+
+        $onlyPrefix = $options['only_tables_with_prefix'] ?? null;
+        if ($onlyPrefix !== null && $onlyPrefix !== '') {
+            $allTables = array_filter($allTables, function ($table) use ($onlyPrefix) {
+                return str_starts_with($table, $onlyPrefix);
+            });
         }
 
         return array_values($allTables);
