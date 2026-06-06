@@ -2,6 +2,30 @@
 
 A lightweight, high-performance, and portable PHP database backup and restore system using PDO. Since it is written in pure PHP, it does not depend on any external CLI tools (like `mysqldump`, `pg_dump`, `sqlite3`, or `sqlcmd`), making it extremely portable and suitable for shared hosting environments.
 
+## Quick Start (MySQL Backup & Restore)
+
+```php
+require 'vendor/autoload.php';
+
+use aktolu\PDB;
+
+// Configure database connection
+$pdb = (new PDB())
+    ->setDriver(PDB::MySQL)
+    ->setHost('127.0.0.1')
+    ->setUser('root')
+    ->setPassword('your_password')
+    ->setDatabase('your_database');
+
+// Backup database to a file (creates directories automatically if they don't exist)
+$pdb->backup('backups/my_database_backup.sql');
+
+// Restore database from a file
+$pdb->restore('backups/my_database_backup.sql');
+```
+
+---
+
 ## Features
 
 - **Flexible Configuration (Fluent Interface)**: Instantiate without arguments and configure dynamically later using setters with method chaining.
@@ -123,8 +147,17 @@ You can configure the behavior of the backup using the 2nd argument of `$pdb->ba
 | `include_data` | `bool` | `true` | Export table data (`INSERT` statements). |
 | `chunk_size` | `int` | `1000` | Records fetched per cursor chunk to prevent PHP memory exhaustion. |
 | `compress` | `bool` | `auto` | Force gzip compression. If not set, checks if file ends with `.gz`. |
+| `add_drop_table` | `bool` | `true` | Include `DROP TABLE IF EXISTS` statement before table creation in the backup. |
 | `prefix` | `string` | `''` | Dynamically prepends a table prefix (e.g. `wp_`) when writing the backup stream. |
 | `prefix_replace` | `array` | `null` | Mapped array `['old_', 'new_']` to replace table prefixes dynamically when writing the backup. |
+
+### Restore Options
+You can configure the behavior of the restore using the 2nd argument of `$pdb->restore()`:
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `drop_tables` | `bool` | `true` | If `true`, executes `DROP TABLE` statements from the SQL backup. If `false`, ignores/skips all `DROP TABLE` queries entirely during import. |
+| `compress` | `bool` | `auto` | Force gzip decompression. If not set, checks if file ends with `.gz`. |
 
 ---
 

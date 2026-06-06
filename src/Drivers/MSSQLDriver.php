@@ -161,7 +161,9 @@ class MSSQLDriver implements DriverInterface
                 // Export Structure
                 if ($includeStructure) {
                     $this->write($handle, "\n--\n-- Table structure for table [{$table}]\n--\n\n", $compress);
-                    $this->write($handle, "IF OBJECT_ID('[{$table}]', 'U') IS NOT NULL DROP TABLE [{$table}];\n", $compress);
+                    if ($options['add_drop_table'] ?? true) {
+                        $this->write($handle, "IF OBJECT_ID('[{$table}]', 'U') IS NOT NULL DROP TABLE [{$table}];\n", $compress);
+                    }
 
                     // Fetch Primary Keys
                     $stmtPk = $this->pdo->prepare("
@@ -435,7 +437,15 @@ class MSSQLDriver implements DriverInterface
                     if ($char === ';' && !$inSingleQuote && !$inDoubleQuote && !$inBracket && $beginNesting === 0) {
                         $stmt = trim($query);
                         if (!empty($stmt)) {
-                            $this->pdo->exec($stmt);
+                            $skip = false;
+                            if (!($options['drop_tables'] ?? true)) {
+                                if (preg_match('/^\s*(DROP\s+TABLE|IF\s+OBJECT_ID\b.*DROP\s+TABLE)\b/i', $stmt)) {
+                                    $skip = true;
+                                }
+                            }
+                            if (!$skip) {
+                                $this->pdo->exec($stmt);
+                            }
                         }
                         $query = '';
                     } else {
@@ -457,7 +467,15 @@ class MSSQLDriver implements DriverInterface
 
             $stmt = trim($query);
             if (!empty($stmt)) {
-                $this->pdo->exec($stmt);
+                $skip = false;
+                if (!($options['drop_tables'] ?? true)) {
+                    if (preg_match('/^\s*(DROP\s+TABLE|IF\s+OBJECT_ID\b.*DROP\s+TABLE)\b/i', $stmt)) {
+                        $skip = true;
+                    }
+                }
+                if (!$skip) {
+                    $this->pdo->exec($stmt);
+                }
             }
 
             return true;

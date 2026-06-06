@@ -239,6 +239,13 @@ class PDB
      */
     public function backup(string $destinationFilePath, array $options = []): bool
     {
+        $dir = dirname($destinationFilePath);
+        if (!empty($dir) && $dir !== '.' && $dir !== '/' && !is_dir($dir)) {
+            if (!@mkdir($dir, 0755, true) && !is_dir($dir)) {
+                // Ignore failure if already created via race condition
+            }
+        }
+
         if ($this->tablePrefix !== null && !isset($options['prefix'])) {
             $options['prefix'] = $this->tablePrefix;
         }

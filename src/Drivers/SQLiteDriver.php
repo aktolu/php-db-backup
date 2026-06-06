@@ -74,7 +74,9 @@ class SQLiteDriver implements DriverInterface
                 // Export Structure
                 if ($includeStructure) {
                     $this->write($handle, "\n--\n-- Table structure for table `{$table}`\n--\n\n", $compress);
-                    $this->write($handle, "DROP TABLE IF EXISTS `{$table}`;\n", $compress);
+                    if ($options['add_drop_table'] ?? true) {
+                        $this->write($handle, "DROP TABLE IF EXISTS `{$table}`;\n", $compress);
+                    }
 
                     $stmt = $this->pdo->prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name = :table");
                     $stmt->execute(['table' => $table]);
@@ -257,7 +259,15 @@ class SQLiteDriver implements DriverInterface
                     if ($char === ';' && !$inSingleQuote && !$inDoubleQuote && !$inBacktick && $beginNesting === 0) {
                         $stmt = trim($query);
                         if (!empty($stmt)) {
-                            $this->pdo->exec($stmt);
+                            $skip = false;
+                            if (!($options['drop_tables'] ?? true)) {
+                                if (preg_match('/^\s*DROP\s+TABLE\b/i', $stmt)) {
+                                    $skip = true;
+                                }
+                            }
+                            if (!$skip) {
+                                $this->pdo->exec($stmt);
+                            }
                         }
                         $query = '';
                     } else {
@@ -279,7 +289,15 @@ class SQLiteDriver implements DriverInterface
 
             $stmt = trim($query);
             if (!empty($stmt)) {
-                $this->pdo->exec($stmt);
+                $skip = false;
+                if (!($options['drop_tables'] ?? true)) {
+                    if (preg_match('/^\s*DROP\s+TABLE\b/i', $stmt)) {
+                        $skip = true;
+                    }
+                }
+                if (!$skip) {
+                    $this->pdo->exec($stmt);
+                }
             }
 
             return true;
