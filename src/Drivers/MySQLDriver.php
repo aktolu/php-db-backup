@@ -86,6 +86,7 @@ class MySQLDriver implements DriverInterface
             $this->write($handle, $header, $compress);
 
             $tables = $this->getTablesToBackup($options);
+            $tables = $this->sortTablesTopologically($tables);
             $includeStructure = $options['include_structure'] ?? true;
             $includeData = $options['include_data'] ?? true;
 
@@ -385,6 +386,71 @@ class MySQLDriver implements DriverInterface
         }
 
         return array_values($allTables);
+    }
+
+    /**
+     * Sort tables topologically based on foreign key dependencies
+     */
+    private function sortTablesTopologically(array $tables): array
+    {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT TABLE_NAME, REFERENCED_TABLE_NAME 
+                FROM information_schema.KEY_COLUMN_USAGE 
+                WHERE TABLE_SCHEMA = :dbName 
+                  AND REFERENCED_TABLE_NAME IS NOT NULL
+            ");
+            $stmt->execute(['dbName' => $this->dbName]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            // Fallback to original order if information_schema query fails
+            return $tables;
+        }
+
+        $dependencies = [];
+        foreach ($tables as $table) {
+            $dependencies[$table] = [];
+        }
+
+        foreach ($rows as $row) {
+            $table = $row['TABLE_NAME'] ?? $row['table_name'] ?? '';
+            $refTable = $row['REFERENCED_TABLE_NAME'] ?? $row['referenced_table_name'] ?? '';
+            if ($table !== '' && $refTable !== '' && $table !== $refTable) {
+                if (in_array($table, $tables) && in_array($refTable, $tables)) {
+                    $dependencies[$table][] = $refTable;
+                }
+            }
+        }
+
+        $visited = [];
+        $ordered = [];
+
+        $dfs = function ($table) use (&$dfs, &$visited, &$ordered, $dependencies) {
+            if (isset($visited[$table])) {
+                if ($visited[$table] === 1) {
+                    // Cycle detected, stop recursion to avoid infinite loops
+                    return;
+                }
+                return;
+            }
+
+            $visited[$table] = 1; // Mark as visiting
+
+            foreach ($dependencies[$table] as $dep) {
+                $dfs($dep);
+            }
+
+            $visited[$table] = 2; // Mark as visited
+            $ordered[] = $table;
+        };
+
+        foreach ($tables as $table) {
+            if (!isset($visited[$table])) {
+                $dfs($table);
+            }
+        }
+
+        return $ordered;
     }
 
     /**

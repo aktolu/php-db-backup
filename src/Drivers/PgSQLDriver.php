@@ -77,6 +77,7 @@ class PgSQLDriver implements DriverInterface
             $this->write($handle, $header, $compress);
 
             $tables = $this->getTablesToBackup($options);
+            $tables = $this->sortTablesTopologically($tables);
             $includeStructure = $options['include_structure'] ?? true;
             $includeData = $options['include_data'] ?? true;
             $sequenceResets = [];
@@ -487,6 +488,80 @@ class PgSQLDriver implements DriverInterface
         }
 
         return array_values($allTables);
+    }
+
+    /**
+     * Sort tables topologically based on foreign key dependencies
+     */
+    private function sortTablesTopologically(array $tables): array
+    {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT 
+                    tc.table_name, 
+                    ccu.table_name AS referenced_table_name
+                FROM 
+                    information_schema.table_constraints AS tc 
+                    JOIN information_schema.key_column_usage AS kcu
+                      ON tc.constraint_name = kcu.constraint_name
+                      AND tc.table_schema = kcu.table_schema
+                    JOIN information_schema.constraint_column_usage AS ccu
+                      ON ccu.constraint_name = tc.constraint_name
+                      AND ccu.table_schema = tc.table_schema
+                WHERE 
+                    tc.constraint_type = 'FOREIGN KEY' 
+                    AND tc.table_schema = 'public'
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            // Fallback to original order if information_schema query fails
+            return $tables;
+        }
+
+        $dependencies = [];
+        foreach ($tables as $table) {
+            $dependencies[$table] = [];
+        }
+
+        foreach ($rows as $row) {
+            $table = $row['table_name'] ?? $row['TABLE_NAME'] ?? '';
+            $refTable = $row['referenced_table_name'] ?? $row['REFERENCED_TABLE_NAME'] ?? '';
+            if ($table !== '' && $refTable !== '' && $table !== $refTable) {
+                if (in_array($table, $tables) && in_array($refTable, $tables)) {
+                    $dependencies[$table][] = $refTable;
+                }
+            }
+        }
+
+        $visited = [];
+        $ordered = [];
+
+        $dfs = function ($table) use (&$dfs, &$visited, &$ordered, $dependencies) {
+            if (isset($visited[$table])) {
+                if ($visited[$table] === 1) {
+                    // Cycle detected, stop recursion
+                    return;
+                }
+                return;
+            }
+
+            $visited[$table] = 1;
+
+            foreach ($dependencies[$table] as $dep) {
+                $dfs($dep);
+            }
+
+            $visited[$table] = 2;
+            $ordered[] = $table;
+        };
+
+        foreach ($tables as $table) {
+            if (!isset($visited[$table])) {
+                $dfs($table);
+            }
+        }
+
+        return $ordered;
     }
 
     private function writeTableData($handle, string $table, array $columns, array $options, bool $compress): void
