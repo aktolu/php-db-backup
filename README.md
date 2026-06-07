@@ -2,6 +2,18 @@
 
 A lightweight, high-performance, and portable PHP database backup and restore system using PDO. Since it is written in pure PHP, it does not depend on any external CLI tools (like `mysqldump`, `pg_dump`, `sqlite3`, or `sqlcmd`), making it extremely portable and suitable for shared hosting environments.
 
+## Installation
+
+You can install the package via Composer:
+
+```bash
+composer require aktolu/php-db-backup
+```
+
+*(Note: Since this is a custom package, ensure you configure your repository source or load it locally in your projects).*
+
+---
+
 ## Quick Start (MySQL Backup & Restore)
 
 ```php
@@ -49,18 +61,6 @@ $pdb->restore('backups/my_database_backup.sql');
   6. Triggers (`CREATE TRIGGER`)
   7. Re-enable constraints
   The restore engine uses character-level block and quote parsing (tracking standard `BEGIN ... END`, `CASE ... END`, PostgreSQL dollar quotes `$$`, and custom `DELIMITER` statements) to prevent nested block semicolons from causing premature statement splitting errors during restoration.
-
----
-
-## Installation
-
-Add this package to your `composer.json` or run:
-
-```bash
-composer require aktolu/pdb
-```
-
-*(Note: Since this is a custom package, ensure you configure your repository source or load it locally in your projects).*
 
 ---
 
