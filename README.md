@@ -22,12 +22,7 @@ require 'vendor/autoload.php';
 use aktolu\PDB;
 
 // Configure database connection
-$pdb = (new PDB())
-    ->setDriver(PDB::MySQL)
-    ->setHost('127.0.0.1')
-    ->setUser('root')
-    ->setPassword('your_password')
-    ->setDatabase('your_database');
+$pdb = new PDB(PDB::MySQL, 'root', 'SECRET', 'database_name', 'localhost', 3306);
 
 // Backup database to a file (creates directories automatically if they don't exist)
 $pdb->backup('backups/my_database_backup.sql');
@@ -79,7 +74,7 @@ $pdb = (new PDB())
     ->setHost('127.0.0.1')
     ->setPort(3306)
     ->setUser('root')
-    ->setPassword('secret_pass')
+    ->setPassword('SECRET')
     ->setDatabase('my_database');
 
 // Backup (Connection is created here, lazily)
@@ -100,7 +95,7 @@ $pdb->backup('backups/sqlite_backup.sql.gz'); // Gzipped automatically
 
 ```php
 // Initialize for PostgreSQL
-$pdb = new PDB(PDB::PostgreSQL, 'postgres', 'password', 'database_name', 'localhost', 5432);
+$pdb = new PDB(PDB::PostgreSQL, 'postgres', 'SECRET', 'database_name', 'localhost', 5432);
 $pdb->backup('backups/pgsql_backup.sql');
 ```
 
@@ -110,7 +105,7 @@ The MS SQL driver dynamically builds DSN bindings. It adapts to the Windows-nati
 
 ```php
 // Initialize for MS SQL Server
-$pdb = new PDB(PDB::MSSQL, 'sa', 'Password123!', 'database_name', 'localhost', 1433);
+$pdb = new PDB(PDB::MSSQL, 'sa', 'SECRET', 'database_name', 'localhost', 1433);
 
 // Backup (Automatically checks tables for Identity columns and handles constraints)
 $pdb->backup('backups/mssql_backup.sql');
